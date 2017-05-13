@@ -51,6 +51,6 @@ with codecs.open('README.md', 'r', 'utf-8') as fd:
         scripts=['bin/fetch_ssl_cert', 'bin/create_vault_ca'],
         install_requires=['appdirs', 'pyparsing', 'pyopenssl', 'requests'],
         cmdclass=cmdclass,
-        setup_requires=['pytest-runner'],
+        setup_requires=['setuptools_scm>=1.15.5', 'pytest-runner>=2.11.1'],
         tests_require=['pytest', 'pytest-cov']
     )
