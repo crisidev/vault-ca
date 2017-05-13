@@ -1,2 +1,2 @@
 # vault-ca
-Set of scripts to create your on CA using hashicorp Vault
+Set of tools to create your own CA and manage certificates using hashicorp Vault
