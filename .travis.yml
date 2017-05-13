@@ -9,6 +9,6 @@ install:
   - python setup.py install
   - pip install pytest-cov
 script:
-  - py.test --cov-report term-missing --cov=vault_ca tests/
+  - py.test -v --cov-report term-missing --cov=vault_ca tests/
 after_success:
   - codecov
