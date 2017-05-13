@@ -4,10 +4,10 @@ python:
   - "3.5"
   - "3.6"
 cache: pip
-install: true
-script:
+install:
   - python setup.py build
   - python setup.py install
-  - python setup.py test
+script:
+  - py.test -3
 after_success:
   - codecov
