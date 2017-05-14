@@ -6,7 +6,6 @@ import pytest
 import OpenSSL
 import requests
 import requests_mock
-from OpenSSL.crypto import load_certificate, FILETYPE_PEM
 
 import vault_ca
 from vault_ca import VaultCA, VaultCAError
@@ -23,6 +22,106 @@ def vault_ca_obj(tmpdir):
         'output_dir': str(tmpdir)
     }
     return VaultCA(kwargs)
+
+
+@pytest.fixture
+def vault_ca_obj_bootstap_ca(tmpdir):
+    kwargs = {
+        'component': 'acomponent',
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+        'bootstrap_ca': True,
+        'output_dir': str(tmpdir)
+    }
+    return VaultCA(kwargs)
+
+
+def test_validate_args_ok():
+    kwargs = {
+        'component': 'acomponent',
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+    }
+    ca = VaultCA(kwargs)
+    assert ca.component == 'acomponent'
+    assert ca.domain == 'test.org'
+    assert ca.vault_token == 'atoken'
+
+
+def test_validate_args_ko():
+    kwargs = {
+        'component': 'acomponent',
+        'vault_token': 'atoken',
+    }
+    with pytest.raises(VaultCAError):
+        VaultCA(kwargs)
+
+    kwargs = {
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+    }
+    with pytest.raises(VaultCAError):
+        VaultCA(kwargs)
+
+
+def test_manager_args(tmpdir):
+    kwargs = {
+        'component': 'acomponent',
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+        'bootstrap_ca': False,
+        'ssl_verity': True,
+        'output_dir': str(tmpdir),
+        'valid_interval': 2
+    }
+    ca = VaultCA(kwargs)
+    assert ca.component == 'acomponent'
+    assert ca.domain == 'test.org'
+    assert ca.vault_token == 'atoken'
+    assert not ca.bootstrap_ca
+    assert ca.ssl_verity
+    assert os.path.isdir(ca.output_dir)
+    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.valid_interval == 2
+
+
+def test_manager_args_bootstrap_ca(tmpdir):
+    kwargs = {
+        'component': 'acomponent',
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+        'bootstrap_ca': True,
+        'output_dir': str(tmpdir),
+    }
+    ca = VaultCA(kwargs)
+    assert ca.component == 'acomponent'
+    assert ca.domain == 'test.org'
+    assert ca.vault_token == 'atoken'
+    assert ca.bootstrap_ca
+    assert not ca.ssl_verity
+    assert os.path.isdir(ca.output_dir)
+    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.valid_interval == 1
+
+
+def test_manager_args_bootstrap_ca_ssl_verify(tmpdir):
+    kwargs = {
+        'component': 'acomponent',
+        'domain': 'test.org',
+        'vault_token': 'atoken',
+        'bootstrap_ca': True,
+        'ssl_verify': True,
+        'output_dir': str(tmpdir),
+    }
+    ca = VaultCA(kwargs)
+    assert ca.component == 'acomponent'
+    assert ca.domain == 'test.org'
+    assert ca.vault_token == 'atoken'
+    assert ca.bootstrap_ca
+    assert ca.ssl_verity
+    assert os.path.isdir(ca.output_dir)
+    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.valid_interval == 1
 
 
 def test_make_dirs(vault_ca_obj, tmpdir):
@@ -152,6 +251,24 @@ def test_write_files(vault_ca_obj):
     vault_ca_obj.ca_path = vault_ca_obj.output_dir
     vault_ca_obj._write_files('test.test.org', cert_data, priv_key_data, ca_data)
     with open(os.path.join(vault_ca_obj.output_dir, "{}.crt".format(component)), 'r') as ca:
+        assert ca.read() == ca_data
+
+
+def test_write_files_boostrap_ca(vault_ca_obj_bootstap_ca):
+    component = "acomponent"
+    common_name = "test.test.org"
+    cert_data = "cert data"
+    priv_key_data = "key data"
+    ca_data = "ca data"
+    vault_ca_obj_bootstap_ca.ca_path = vault_ca_obj_bootstap_ca.output_dir
+    vault_ca_obj_bootstap_ca._write_files('test.test.org', cert_data, priv_key_data, ca_data)
+    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.pem".format(component, common_name)),
+              'r') as pem:
+        assert pem.read() == cert_data
+    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.key".format(component, common_name)),
+              'r') as key:
+        assert key.read() == priv_key_data
+    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}.crt".format(component)), 'r') as ca:
         assert ca.read() == ca_data
 
 

@@ -21,17 +21,34 @@ class VaultCA(object):
     DEFAULT_VALID_INTERVAL_DAYS = 1
     VAULT_ADDRESS = 'https://vault.{}:8002'
     CA_PATH = '/usr/local/share/ca-certificates/{}'
+    MANDATORY_ARGS = ('component', 'domain', 'vault_token')
 
     def __init__(self, kwargs):
+        self._validate_args(kwargs)
+        self._manage_args(kwargs)
+
+    def _manage_args(self, kwargs):
         self.component = kwargs['component']
         self.domain = kwargs['domain']
         self.vault_token = kwargs['vault_token']
         self.output_dir = kwargs.get('output_dir') or self.CA_PATH.format(self.domain)
         self.bootstrap_ca = kwargs.get('bootstrap_ca')
-        self.ssl_verity = kwargs.get('ssl_verify') or True
+        if self.bootstrap_ca and not kwargs.get('ssl_verify'):
+            self.ssl_verity = False
+        else:
+            self.ssl_verity = kwargs.get('ssl_verify') or True
         self.valid_interval = kwargs.get('valid_interval') or self.DEFAULT_VALID_INTERVAL_DAYS
         self.vault_address = kwargs.get('vault_address') or self.VAULT_ADDRESS.format(self.domain)
         self.ca_path = self.CA_PATH.format(self.domain)
+
+    def _validate_args(self, kwargs):
+        missing_args = []
+        for arg in self.MANDATORY_ARGS:
+            if arg not in kwargs.keys():
+                logging.error("missing mandatory init argument `%s`", arg)
+                missing_args.append(arg)
+        if missing_args:
+            raise VaultCAError("missing mandatory init arguments `%s`", ', '.join(missing_args))
 
     def _make_dirs(self, directory):
         try:
