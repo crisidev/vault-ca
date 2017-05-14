@@ -8,6 +8,9 @@ import datetime
 import vault_ca
 from vault_ca import VaultCA, VaultCAError
 
+if not hasattr(json, 'JSONDecodeError'):
+    json.JSONDecodeError = ValueError
+
 
 @pytest.fixture
 def vault_ca_obj(tmpdir):
