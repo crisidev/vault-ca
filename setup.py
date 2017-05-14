@@ -50,7 +50,7 @@ with codecs.open('README.md', 'r', 'utf-8') as fd:
             'Programming Language :: Python :: 3.6',
         ],
         packages=find_packages(exclude=['docs', 'tests']),
-        scripts=['bin/fetch_ssl_cert', 'bin/create_vault_ca'],
+        scripts=['bin/fetch-ssl-cert', 'bin/create-vault-ca'],
         install_requires=['appdirs', 'pyparsing', 'pyopenssl', 'requests'],
         cmdclass=cmdclass,
         setup_requires=['pytest-runner'],

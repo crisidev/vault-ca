@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import logging
+import argparse
+
+from vault_ca import VaultCA, VaultCAError
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="""Fetch a certificate/key pair from the Vault.
+                       Documentation: https://github.com/crisidev/vault-ca/blob/master/README.md"""
+    )
+
+    # required
+    parser.add_argument('--component', '-c', dest='component', required=True, help="Component used")
+    parser.add_argument('--domain', '-d', dest='domain', required=True, help="CA domain")
+    parser.add_argument('--token', '-t', dest='vault_token', required=True, help="Vault token for this component")
+    parser.add_argument('--common-name', '-n', dest='common_name', required=True, help="Common Name (CN)")
+
+    # optional
+    parser.add_argument(
+        '--alt-names', '-a', dest='alt_names', required=False, help="Alternative names (optional, comma sepatated)"
+    )
+    parser.add_argument(
+        '--ip-san', '-i', dest='ip_sans', required=False, help="IP addresses list (optional, comma separated)"
+    )
+    parser.add_argument('--ttl', '-T', dest='ttl', default="8760h", help="Certificate TTL in hours (default 1 year)")
+    parser.add_argument('--vault-address', '-A', dest='vault_address', required=False, help="Vault server URL")
+    parser.add_argument(
+        '--no-ssl-verify',
+        '-V',
+        dest='ssl_verify',
+        action="store_false",
+        default=True,
+        help="Disable SSL verification (implied by -b)"
+    )
+    parser.add_argument(
+        '--bootstrap-ca',
+        '-b',
+        dest='bootstrap_ca',
+        action="store_true",
+        default=False,
+        help="Be the first to call vault to fetch the CA file (implies -V)"
+    )
+    parser.add_argument(
+        '--output-dir', '-o', dest='output_dir', required=False, help="Certificate / keys pair output directory"
+    )
+    parser.add_argument('--ca-path', '-C', dest='ca_path', required=False, help="CA output directory")
+    parser.add_argument('--debug', '-D', dest='debug', action="store_true", help="Enable debug")
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    print(args.ssl_verify)
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format='%(asctime)s %(filename)s:%(lineno)s %(levelname)s:%(message)s'
+    )
+    try:
+        ca = VaultCA(vars(args))
+        ca.fetch(args.common_name, ip_sans=args.ip_sans, alt_names=args.alt_names, ttl=args.ttl)
+    except VaultCAError as e:
+        logging.error(e)
+        sys.exit(1)
+    except Exception as e:
+        logging.exception(e)
+        sys.exit(2)
+    else:
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
