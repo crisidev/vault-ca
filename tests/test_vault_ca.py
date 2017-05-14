@@ -18,7 +18,7 @@ def vault_ca_obj(tmpdir):
         'domain': 'test.org',
         'vault_token': 'atoken',
         'bootstrap_ca': False,
-        'ssl_verity': True,
+        'ssl_verify': True,
         'output_dir': str(tmpdir)
     }
     return VaultCA(kwargs)
@@ -70,7 +70,7 @@ def test_manager_args(tmpdir):
         'domain': 'test.org',
         'vault_token': 'atoken',
         'bootstrap_ca': False,
-        'ssl_verity': True,
+        'ssl_verify': True,
         'output_dir': str(tmpdir),
         'valid_interval': 2
     }
@@ -79,9 +79,9 @@ def test_manager_args(tmpdir):
     assert ca.domain == 'test.org'
     assert ca.vault_token == 'atoken'
     assert not ca.bootstrap_ca
-    assert ca.ssl_verity
+    assert ca.ssl_verify
     assert os.path.isdir(ca.output_dir)
-    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.vault_address == 'https://vault.test.org:8200'
     assert ca.valid_interval == 2
 
 
@@ -98,9 +98,9 @@ def test_manager_args_bootstrap_ca(tmpdir):
     assert ca.domain == 'test.org'
     assert ca.vault_token == 'atoken'
     assert ca.bootstrap_ca
-    assert not ca.ssl_verity
+    assert not ca.ssl_verify
     assert os.path.isdir(ca.output_dir)
-    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.vault_address == 'https://vault.test.org:8200'
     assert ca.valid_interval == 1
 
 
@@ -118,9 +118,9 @@ def test_manager_args_bootstrap_ca_ssl_verify(tmpdir):
     assert ca.domain == 'test.org'
     assert ca.vault_token == 'atoken'
     assert ca.bootstrap_ca
-    assert ca.ssl_verity
+    assert ca.ssl_verify
     assert os.path.isdir(ca.output_dir)
-    assert ca.vault_address == 'https://vault.test.org:8002'
+    assert ca.vault_address == 'https://vault.test.org:8200'
     assert ca.valid_interval == 1
 
 
@@ -239,37 +239,60 @@ def test_is_certificate_valid_true_more_than_24h(vault_ca_obj, monkeypatch):
 def test_write_files(vault_ca_obj):
     component = "acomponent"
     common_name = "test.test.org"
-    cert_data = "cert data"
-    priv_key_data = "key data"
-    ca_data = "ca data"
-    vault_ca_obj._write_files('test.test.org', cert_data, priv_key_data, ca_data)
-    with open(os.path.join(vault_ca_obj.output_dir, "{}-{}.pem".format(component, common_name)), 'r') as pem:
+    cert_data = open('tests/fixtures/acomponent-test.test.org.pem.ok', 'r').read()
+    priv_key_data = open('tests/fixtures/acomponent-test.test.org.key', 'r').read()
+    ca_data = open('tests/fixtures/acomponent.crt', 'r').read()
+    cert_file = os.path.join(vault_ca_obj.output_dir, "{}-{}.pem".format(component, common_name))
+    priv_key_file = os.path.join(vault_ca_obj.output_dir, "{}-{}.key".format(component, common_name))
+    ca_file = os.path.join(vault_ca_obj.output_dir, "{}.crt".format(component))
+    vault_ca_obj._write_files('test.test.org', cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file)
+    with open(cert_file, 'r') as pem:
         assert pem.read() == cert_data
-    with open(os.path.join(vault_ca_obj.output_dir, "{}-{}.key".format(component, common_name)), 'r') as key:
+    with open(priv_key_file, 'r') as key:
         assert key.read() == priv_key_data
-    vault_ca_obj.bootstrap_ca = True
-    vault_ca_obj.ca_path = vault_ca_obj.output_dir
-    vault_ca_obj._write_files('test.test.org', cert_data, priv_key_data, ca_data)
-    with open(os.path.join(vault_ca_obj.output_dir, "{}.crt".format(component)), 'r') as ca:
-        assert ca.read() == ca_data
 
 
 def test_write_files_boostrap_ca(vault_ca_obj_bootstap_ca):
     component = "acomponent"
     common_name = "test.test.org"
-    cert_data = "cert data"
-    priv_key_data = "key data"
-    ca_data = "ca data"
+    cert_data = open('tests/fixtures/acomponent-test.test.org.pem.ok', 'r').read()
+    priv_key_data = open('tests/fixtures/acomponent-test.test.org.key', 'r').read()
+    ca_data = open('tests/fixtures/acomponent.crt', 'r').read()
+    cert_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.pem".format(component, common_name))
+    priv_key_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.key".format(component, common_name))
+    ca_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}.crt".format(component))
     vault_ca_obj_bootstap_ca.ca_path = vault_ca_obj_bootstap_ca.output_dir
-    vault_ca_obj_bootstap_ca._write_files('test.test.org', cert_data, priv_key_data, ca_data)
-    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.pem".format(component, common_name)),
-              'r') as pem:
+    vault_ca_obj_bootstap_ca._write_files(
+        'test.test.org', cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file
+    )
+    with open(cert_file, 'r') as pem:
         assert pem.read() == cert_data
-    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.key".format(component, common_name)),
-              'r') as key:
+    with open(priv_key_file, 'r') as key:
         assert key.read() == priv_key_data
-    with open(os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}.crt".format(component)), 'r') as ca:
+    with open(ca_file, 'r') as ca:
         assert ca.read() == ca_data
+
+
+def test_write_files_boostrap_ca_invalid_cert(vault_ca_obj_bootstap_ca, monkeypatch):
+    def mock_is_certificate_valid(certificate_path):
+        return True
+
+    monkeypatch.setattr(vault_ca_obj_bootstap_ca, '_is_certificate_valid', mock_is_certificate_valid)
+
+    component = "acomponent"
+    common_name = "test.test.org"
+    cert_data = open('tests/fixtures/acomponent-test.test.org.pem.ok', 'r').read()
+    priv_key_data = open('tests/fixtures/acomponent-test.test.org.key', 'r').read()
+    ca_data = open('tests/fixtures/acomponent.crt', 'r').read()
+    cert_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.pem".format(component, common_name))
+    priv_key_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}-{}.key".format(component, common_name))
+    ca_file = os.path.join(vault_ca_obj_bootstap_ca.output_dir, "{}.crt".format(component))
+    vault_ca_obj_bootstap_ca.ca_path = vault_ca_obj_bootstap_ca.output_dir
+    vault_ca_obj_bootstap_ca._write_files(
+        'test.test.org', cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file
+    )
+    assert not os.path.isfile(cert_file)
+    assert not os.path.isfile(ca_file)
 
 
 def test_prepare_json_data(vault_ca_obj):
@@ -399,37 +422,59 @@ def test_extract_certificates_no_ca(vault_ca_obj):
 
 
 def test_fetch_200(vault_ca_obj):
+    component = "acomponent"
+    common_name = "test.test.org"
+    cert_file = os.path.join(vault_ca_obj.output_dir, "{}-{}.pem".format(component, common_name))
+    priv_key_file = os.path.join(vault_ca_obj.output_dir, "{}-{}.key".format(component, common_name))
     with requests_mock.Mocker() as mock:
         response = {'data': {'certificate': 'cert data', 'private_key': 'key data', 'issuing_ca': 'ca data'}}
-        mock.put('https://vault.test.org:8002', json=response, status_code=200)
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', json=response, status_code=200)
         vault_ca_obj.fetch('test.test.org', ip_sans='10.0.0.1', alt_names='alttest.test.org', ttl='24h')
-        assert os.path.isfile(os.path.join(vault_ca_obj.output_dir, "acomponent-test.test.org.pem"))
-        assert os.path.isfile(os.path.join(vault_ca_obj.output_dir, "acomponent-test.test.org.key"))
+        assert os.path.isfile(cert_file)
+        assert os.path.isfile(priv_key_file)
 
 
 def test_fetch_404(vault_ca_obj):
     with requests_mock.Mocker() as mock:
-        mock.put('https://vault.test.org:8002', json={}, status_code=404)
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', json={}, status_code=404)
         with pytest.raises(VaultCAError):
             vault_ca_obj.fetch('test.test.org')
 
 
 def test_fetch_500(vault_ca_obj):
     with requests_mock.Mocker() as mock:
-        mock.put('https://vault.test.org:8002', json={}, status_code=500)
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', json={}, status_code=500)
         with pytest.raises(VaultCAError):
             vault_ca_obj.fetch('test.test.org')
 
 
 def test_fetch_connect_timeout(vault_ca_obj):
     with requests_mock.Mocker() as mock:
-        mock.put('https://vault.test.org:8002', exc=requests.exceptions.ConnectTimeout)
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', exc=requests.exceptions.ConnectTimeout)
         with pytest.raises(VaultCAError):
             vault_ca_obj.fetch('test.test.org')
 
 
 def test_fetch_connect_error(vault_ca_obj):
     with requests_mock.Mocker() as mock:
-        mock.put('https://vault.test.org:8002', exc=requests.exceptions.ConnectionError)
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', exc=requests.exceptions.ConnectionError)
         with pytest.raises(VaultCAError):
             vault_ca_obj.fetch('test.test.org')
+
+
+def test_fetch_valid_cert(vault_ca_obj, monkeypatch):
+    def mock_is_certificate_valid(certificate_path):
+        return True
+
+    monkeypatch.setattr(vault_ca_obj, '_is_certificate_valid', mock_is_certificate_valid)
+
+    component = "acomponent"
+    common_name = "test.test.org"
+    cert_file = os.path.join(vault_ca_obj.output_dir, "{}-{}.pem".format(component, common_name))
+    ca_file = os.path.join(vault_ca_obj.output_dir, "{}.crt".format(component))
+    with requests_mock.Mocker() as mock:
+        response = {'data': {'certificate': 'cert data', 'private_key': 'key data', 'issuing_ca': 'ca data'}}
+        mock.put('https://vault.test.org:8200/v1/pki/test.org/issue/cert', json=response, status_code=200)
+        vault_ca_obj.fetch('test.test.org', ip_sans='10.0.0.1', alt_names='alttest.test.org', ttl='24h')
+        assert not os.path.isfile(cert_file)
+        assert not os.path.isfile(ca_file)
