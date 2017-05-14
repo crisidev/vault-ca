@@ -39,7 +39,7 @@ class VaultCA(object):
             self.ssl_verity = kwargs.get('ssl_verify') or True
         self.valid_interval = kwargs.get('valid_interval') or self.DEFAULT_VALID_INTERVAL_DAYS
         self.vault_address = kwargs.get('vault_address') or self.VAULT_ADDRESS.format(self.domain)
-        self.ca_path = self.CA_PATH.format(self.domain)
+        self.ca_path = kwargs.get('ca_path') or self.CA_PATH.format(self.domain)
 
     def _validate_args(self, kwargs):
         missing_args = []
