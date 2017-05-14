@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import requests
 from OpenSSL.crypto import load_certificate, FILETYPE_PEM, Error
 
+VERSION = 0.1
+
 # fix incompatibility between python 3.4 and 3.5+ json implementation
 if not hasattr(json, 'JSONDecodeError'):  # pragma: nocover
     json.JSONDecodeError = ValueError
