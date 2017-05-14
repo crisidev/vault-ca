@@ -1,14 +1,16 @@
 language: python
+
 python:
   - "3.4"
   - "3.5"
   - "3.6"
+
 cache: pip
+
 install:
   - python setup.py build
   - python setup.py install
-  - pip install pytest-cov
+  - pip install pytest-cov requests-mock
+
 script:
-  - py.test -v --cov-report term-missing --cov=vault_ca tests/
-after_success:
-  - codecov
+  - py.test
