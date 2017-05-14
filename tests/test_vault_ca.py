@@ -274,6 +274,7 @@ def test_write_files_boostrap_ca(vault_ca_obj_bootstap_ca):
 
 
 def test_write_files_boostrap_ca_invalid_cert(vault_ca_obj_bootstap_ca, monkeypatch):
+
     def mock_is_certificate_valid(certificate_path):
         return True
 
@@ -463,6 +464,7 @@ def test_fetch_connect_error(vault_ca_obj):
 
 
 def test_fetch_valid_cert(vault_ca_obj, monkeypatch):
+
     def mock_is_certificate_valid(certificate_path):
         return True
 

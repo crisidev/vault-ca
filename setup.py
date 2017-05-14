@@ -25,15 +25,15 @@ cmdclass = {
 
 with codecs.open('README.md', 'r', 'utf-8') as fd:
     setup(
-        name='vault_ca',
+        name='vault-ca',
         version='0.1',
         description='Set of utils to create your own CA using hashicorp Vault',
         long_description=fd.read(),
         author='Matteo Bigoi',
         author_email='bigo@crisidev.org',
-        url='https://github.com/crisidev/vault_ca',
+        url='https://github.com/crisidev/vault-ca',
         license='GPLv3',
-        download_url='https://github.com/crisidev/vault_ca/archive/0.1.tar.gz',
+        download_url='https://github.com/crisidev/vault-ca/archive/0.1.tar.gz',
         keywords=['ssl', 'certificate-authority', 'vault'],
         classifiers=[
             'Development Status :: 3 - Alpha',
