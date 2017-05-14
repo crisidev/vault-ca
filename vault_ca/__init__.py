@@ -4,11 +4,10 @@ import logging
 from datetime import datetime, timedelta
 
 import requests
-from requests import ConnectionError
 from OpenSSL.crypto import load_certificate, FILETYPE_PEM, Error
 
-
-if not hasattr(json, 'JSONDecodeError'):
+# fix incompatibility between python 3.4 and 3.5+ json implementation
+if not hasattr(json, 'JSONDecodeError'):  # pragma: nocover
     json.JSONDecodeError = ValueError
 
 
@@ -150,15 +149,15 @@ class VaultCA(object):
         return cert_data, priv_key_data, ca_data
 
     def fetch(self, common_name, ip_sans=None, alt_names=None, ttl=None):
-        headers = {'X-Vault-Token': self.token}
+        headers = {'X-Vault-Token': self.vault_token}
 
         data = self._prepare_json_data(common_name, ip_sans=ip_sans, alt_names=alt_names, ttl=ttl)
 
         try:
-            request = requests.put(self.vault_address, data=data, headers=headers, verify=self.verify_ssl)
-        except ConnectionError as e:
-            logging.error("error fetching cert / key pair: %s", e)
-            raise VaultCAError("timeout or connection error requesting cert / key pair")
+            request = requests.put(self.vault_address, data=data, headers=headers, verify=self.ssl_verity)
+        except requests.exceptions.RequestException as e:
+            logging.error("exception connecting to vault endpoint: %s", e)
+            raise VaultCAError("exception connecting to vault endpoint")
         else:
             response = self._analise_request(request)
 

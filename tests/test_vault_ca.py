@@ -1,9 +1,12 @@
 import os
 import json
+import datetime
 
 import pytest
 import OpenSSL
-import datetime
+import requests
+import requests_mock
+from OpenSSL.crypto import load_certificate, FILETYPE_PEM
 
 import vault_ca
 from vault_ca import VaultCA, VaultCAError
@@ -276,3 +279,40 @@ def test_extract_certificates_no_ca(vault_ca_obj):
 
     with pytest.raises(VaultCAError):
         vault_ca_obj._extract_certificates(response)
+
+
+def test_fetch_200(vault_ca_obj):
+    with requests_mock.Mocker() as mock:
+        response = {'data': {'certificate': 'cert data', 'private_key': 'key data', 'issuing_ca': 'ca data'}}
+        mock.put('https://vault.test.org:8002', json=response, status_code=200)
+        vault_ca_obj.fetch('test.test.org', ip_sans='10.0.0.1', alt_names='alttest.test.org', ttl='24h')
+        assert os.path.isfile(os.path.join(vault_ca_obj.output_dir, "acomponent-test.test.org.pem"))
+        assert os.path.isfile(os.path.join(vault_ca_obj.output_dir, "acomponent-test.test.org.key"))
+
+
+def test_fetch_404(vault_ca_obj):
+    with requests_mock.Mocker() as mock:
+        mock.put('https://vault.test.org:8002', json={}, status_code=404)
+        with pytest.raises(VaultCAError):
+            vault_ca_obj.fetch('test.test.org')
+
+
+def test_fetch_500(vault_ca_obj):
+    with requests_mock.Mocker() as mock:
+        mock.put('https://vault.test.org:8002', json={}, status_code=500)
+        with pytest.raises(VaultCAError):
+            vault_ca_obj.fetch('test.test.org')
+
+
+def test_fetch_connect_timeout(vault_ca_obj):
+    with requests_mock.Mocker() as mock:
+        mock.put('https://vault.test.org:8002', exc=requests.exceptions.ConnectTimeout)
+        with pytest.raises(VaultCAError):
+            vault_ca_obj.fetch('test.test.org')
+
+
+def test_fetch_connect_error(vault_ca_obj):
+    with requests_mock.Mocker() as mock:
+        mock.put('https://vault.test.org:8002', exc=requests.exceptions.ConnectionError)
+        with pytest.raises(VaultCAError):
+            vault_ca_obj.fetch('test.test.org')
