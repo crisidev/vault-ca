@@ -47,10 +47,10 @@ with codecs.open('README.md', 'r', 'utf-8') as fd:
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
         ],
-        packages=find_packages(exclude=['docs', 'tests*']),
+        packages=find_packages(exclude=['docs', 'tests']),
         scripts=['bin/fetch_ssl_cert', 'bin/create_vault_ca'],
         install_requires=['appdirs', 'pyparsing', 'pyopenssl', 'requests'],
         cmdclass=cmdclass,
         setup_requires=['pytest-runner'],
-        tests_require=['pytest', 'pytest-cov']
+        tests_require=['pytest', 'pytest-cov', 'requests-mock']
     )
