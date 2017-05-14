@@ -7,6 +7,7 @@ import requests
 from requests import ConnectionError
 from OpenSSL.crypto import load_certificate, FILETYPE_PEM, Error
 
+
 if not hasattr(json, 'JSONDecodeError'):
     json.JSONDecodeError = ValueError
 
