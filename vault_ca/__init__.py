@@ -19,8 +19,9 @@ class VaultCA(object):
     ASN1_GENERALIZETIME_FORMAT = "%Y%m%d%H%M%SZ"
     DEFAULT_CERTIFICATE_TTL = '8760h'  # 1 year
     DEFAULT_VALID_INTERVAL_DAYS = 1
-    VAULT_ADDRESS = 'https://vault.{}:8002'
-    CA_PATH = '/usr/local/share/ca-certificates/{}'
+    VAULT_ADDRESS = "https://vault.{}:8200"
+    VAULT_PATH = "v1/pki/{}/issue/cert"
+    CA_PATH = "/usr/local/share/ca-certificates/{}"
     MANDATORY_ARGS = ('component', 'domain', 'vault_token')
 
     def __init__(self, kwargs):
@@ -33,13 +34,14 @@ class VaultCA(object):
         self.vault_token = kwargs['vault_token']
         self.output_dir = kwargs.get('output_dir') or self.CA_PATH.format(self.domain)
         self.bootstrap_ca = kwargs.get('bootstrap_ca')
-        if self.bootstrap_ca and not kwargs.get('ssl_verify'):
-            self.ssl_verity = False
+        if self.bootstrap_ca and kwargs.get('ssl_verify') is not True:
+            self.ssl_verify = False
         else:
-            self.ssl_verity = kwargs.get('ssl_verify') or True
+            self.ssl_verify = kwargs.get('ssl_verify')
         self.valid_interval = kwargs.get('valid_interval') or self.DEFAULT_VALID_INTERVAL_DAYS
         self.vault_address = kwargs.get('vault_address') or self.VAULT_ADDRESS.format(self.domain)
         self.ca_path = kwargs.get('ca_path') or self.CA_PATH.format(self.domain)
+        logging.debug('vault address is `%s`', self.vault_address)
 
     def _validate_args(self, kwargs):
         missing_args = []
@@ -94,21 +96,19 @@ class VaultCA(object):
             logging.debug("certificate `%s` does not exist on disk, fetching required", certificate_path)
             return False
 
-    def _write_files(self, common_name, cert_data, priv_key_data, ca_data):
-        cert_file = os.path.join(self.output_dir, '{}-{}.pem'.format(self.component, common_name))
-        priv_key_file = os.path.join(self.output_dir, '{}-{}.key'.format(self.component, common_name))
-        ca_file = os.path.join(self.ca_path, "{}.crt".format(self.component))
-        with open(cert_file, 'w') as cert, open(priv_key_file, 'w') as priv_key:
-            logging.debug("writing certificate for %s on %s", common_name, cert_file)
-            cert.write(cert_data)
+    def _write_files(self, common_name, cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file):
+        if not self._is_certificate_valid(cert_file):
+            with open(cert_file, 'w') as cert, open(priv_key_file, 'w') as priv_key:
+                logging.debug("writing certificate for %s on %s", common_name, cert_file)
+                cert.write(cert_data)
 
-            logging.debug("writing private key for %s on %s", common_name, priv_key_file)
-            priv_key.write(priv_key_data)
+                logging.debug("writing private key for %s on %s", common_name, priv_key_file)
+                priv_key.write(priv_key_data)
 
-            if self.bootstrap_ca:
-                with open(ca_file, 'w') as ca:
-                    logging.debug("writing CA on %s", ca_file)
-                    ca.write(ca_data)
+        if self.bootstrap_ca and not self._is_certificate_valid(ca_file):
+            with open(ca_file, 'w') as ca:
+                logging.debug("writing CA on %s", ca_file)
+                ca.write(ca_data)
 
     def _prepare_json_data(self, common_name, ip_sans=None, alt_names=None, ttl=None):
         if not ttl:
@@ -166,17 +166,27 @@ class VaultCA(object):
         return cert_data, priv_key_data, ca_data
 
     def fetch(self, common_name, ip_sans=None, alt_names=None, ttl=None):
-        headers = {'X-Vault-Token': self.vault_token}
+        self._make_dirs(self.output_dir)
+        self._make_dirs(self.ca_path)
 
-        data = self._prepare_json_data(common_name, ip_sans=ip_sans, alt_names=alt_names, ttl=ttl)
+        cert_file = os.path.join(self.output_dir, '{}-{}.pem'.format(self.component, common_name))
+        priv_key_file = os.path.join(self.output_dir, '{}-{}.key'.format(self.component, common_name))
+        ca_file = os.path.join(self.ca_path, "{}.crt".format(self.component))
 
-        try:
-            request = requests.put(self.vault_address, data=data, headers=headers, verify=self.ssl_verity)
-        except requests.exceptions.RequestException as e:
-            logging.error("exception connecting to vault endpoint: %s", e)
-            raise VaultCAError("exception connecting to vault endpoint")
-        else:
-            response = self._analise_request(request)
+        if not self._is_certificate_valid(cert_file) or not self._is_certificate_valid(ca_file):
+            url = "{}/{}".format(self.vault_address, self.VAULT_PATH.format(self.domain))
+            logging.debug("request url is `%s`", url)
 
-        cert_data, priv_key_data, ca_data = self._extract_certificates(response)
-        self._write_files(common_name, cert_data, priv_key_data, ca_data)
+            headers = {'X-Vault-Token': self.vault_token}
+            data = self._prepare_json_data(common_name, ip_sans=ip_sans, alt_names=alt_names, ttl=ttl)
+
+            try:
+                request = requests.put(url, data=data, headers=headers, verify=self.ssl_verify)
+            except requests.exceptions.RequestException as e:
+                logging.error("exception connecting to vault endpoint: %s", e)
+                raise VaultCAError("exception connecting to vault endpoint")
+            else:
+                response = self._analise_request(request)
+
+            cert_data, priv_key_data, ca_data = self._extract_certificates(response)
+            self._write_files(common_name, cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file)
