@@ -153,27 +153,27 @@ def test_write_files(vault_ca_obj):
 
 
 def test_prepare_json_data(vault_ca_obj):
-    expected = '{"common_name": "common_name", "ttl": "8760h"}'
+    expected = {'common_name': 'common_name', 'ttl': '8760h'}
     json_data = vault_ca_obj._prepare_json_data('common_name')
-    assert json_data == expected
+    assert json.loads(json_data) == expected
 
 
 def test_prepare_json_data_alt_names(vault_ca_obj):
-    expected = '{"common_name": "common_name", "ttl": "8760h", "alt_names": "altname1,altname2"}'
+    expected = {'common_name': 'common_name', 'ttl': '8760h', 'alt_names': 'altname1,altname2'}
     json_data = vault_ca_obj._prepare_json_data('common_name', alt_names="altname1,altname2")
-    assert json_data == expected
+    assert json.loads(json_data) == expected
 
 
 def test_prepare_json_data_ip_sans(vault_ca_obj):
-    expected = '{"common_name": "common_name", "ttl": "8760h", "ip_sans": "10.0.0.1,127.0.0.1"}'
+    expected = {'common_name': 'common_name', 'ttl': '8760h', 'ip_sans': '10.0.0.1,127.0.0.1'}
     json_data = vault_ca_obj._prepare_json_data('common_name', ip_sans="10.0.0.1,127.0.0.1")
-    assert json_data == expected
+    assert json.loads(json_data) == expected
 
 
 def test_prepare_json_data_ttl(vault_ca_obj):
-    expected = '{"common_name": "common_name", "ttl": "24h"}'
+    expected = {'common_name': 'common_name', 'ttl': '24h'}
     json_data = vault_ca_obj._prepare_json_data('common_name', ttl="24h")
-    assert json_data == expected
+    assert json.loads(json_data) == expected
 
 
 def test_analise_request_ok(vault_ca_obj):
