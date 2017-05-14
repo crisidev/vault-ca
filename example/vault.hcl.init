@@ -1,0 +1,15 @@
+cluster_name = "test-cluster"
+
+backend "file" {
+    path = "/opt/lib/vault"
+}
+
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = 1
+}
+
+# 1 year default ttl
+default_lease_ttl = "8760h"
+# 5 years max ttl
+max_lease_ttl = "43800h"
