@@ -11,10 +11,11 @@ cache: pip
 install:
   - python setup.py build
   - python setup.py install
-  - pip install pytest-cov requests-mock codecov
+  - pip install pytest-cov requests-mock codecov codeclimate-test-reporter
 
 script:
   - py.test
 
 after_success:
   - codecov
+  - CODECLIMATE_REPO_TOKEN=f8067bcd68e80313e77f6c8319cc79f4f3443e7d703fdc22acc4d1f71a927e6c codeclimate-test-reporter
