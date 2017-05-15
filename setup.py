@@ -2,7 +2,7 @@ import sys
 from distutils.core import setup
 from setuptools import find_packages, Command
 
-VERSION = 0.4
+VERSION = 0.5
 
 
 class FormatCommand(Command):

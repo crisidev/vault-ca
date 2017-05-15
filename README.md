@@ -9,6 +9,9 @@ apt-get install libffi-dev libssl-dev
 pip install vault-ca
 ```
 
+## Documentation
+[https://vault-ca.readthedocs.io/en/latest/index.html](https://vault-ca.readthedocs.io/en/latest/index.html)
+
 ## How to
 ### Initialize the Vault
 Vault need to be initialized without SSL certificates and than switched.
