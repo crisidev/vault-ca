@@ -13,25 +13,29 @@ from vault_ca import VaultCA, VaultCAError
 
 @pytest.fixture
 def vault_ca_obj(tmpdir):
+    temp_dir = str(tmpdir)
     kwargs = {
         'component': 'acomponent',
         'domain': 'test.org',
         'vault_token': 'atoken',
         'bootstrap_ca': False,
         'ssl_verify': True,
-        'output_dir': str(tmpdir)
+        'output_dir': temp_dir,
+        'ca_path': temp_dir
     }
     return VaultCA(kwargs)
 
 
 @pytest.fixture
 def vault_ca_obj_bootstap_ca(tmpdir):
+    temp_dir = str(tmpdir)
     kwargs = {
         'component': 'acomponent',
         'domain': 'test.org',
         'vault_token': 'atoken',
         'bootstrap_ca': True,
-        'output_dir': str(tmpdir)
+        'output_dir': temp_dir,
+        'ca_path': temp_dir
     }
     return VaultCA(kwargs)
 
