@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import requests
 from OpenSSL.crypto import load_certificate, FILETYPE_PEM, Error
 
-VERSION = 0.3
+VERSION = 0.4
 
 # fix incompatibility between python 3.4 and 3.5+ json implementation
 if not hasattr(json, 'JSONDecodeError'):  # pragma: nocover
@@ -14,11 +14,17 @@ if not hasattr(json, 'JSONDecodeError'):  # pragma: nocover
 
 
 class VaultCAError(Exception):
+    """
+    VaultCA custom exception
+    """
     pass
 
 
 class VaultCA(object):
-    ASN1_GENERALIZETIME_FORMAT = "%Y%m%d%H%M%SZ"
+    """
+    Object to handle fetching ot certificate/key pairs and CA.
+    """
+    ASN1_GENERALIZEDTIME_FORMAT = "%Y%m%d%H%M%SZ"
     DEFAULT_CERTIFICATE_TTL = '8760h'  # 1 year
     DEFAULT_VALID_INTERVAL_DAYS = 1
     VAULT_ADDRESS = "https://vault.{}:8200"
@@ -27,10 +33,23 @@ class VaultCA(object):
     MANDATORY_ARGS = ('component', 'domain', 'vault_token')
 
     def __init__(self, kwargs):
+        """
+        Initialize object and its attributes.
+
+        :param kwargs: arguments dictionary
+        :type kwargs: dict
+        """
         self._validate_args(kwargs)
         self._manage_args(kwargs)
 
     def _manage_args(self, kwargs):
+        """
+        Setup object attributes for later usage.
+
+        :param kwargs: arguments dictionary
+        :type kwargs: dict
+        """
+
         self.component = kwargs['component']
         self.domain = kwargs['domain']
         self.vault_token = kwargs['vault_token']
@@ -46,6 +65,15 @@ class VaultCA(object):
         logging.debug('vault address is `%s`', self.vault_address)
 
     def _validate_args(self, kwargs):
+        """
+        Validate that mandatory arguments are present.
+
+        :param kwargs: arguments dictionary
+        :type kwargs: dict
+
+        :raises VaultCAError: if there are missing mandatory arguments
+        """
+
         missing_args = []
         for arg in self.MANDATORY_ARGS:
             if arg not in kwargs.keys():
@@ -55,20 +83,45 @@ class VaultCA(object):
             raise VaultCAError("missing mandatory init arguments `%s`", ', '.join(missing_args))
 
     def _make_dirs(self, directory):
-        try:
+        """
+        Create directory if not present.
+
+        :param directory: directory to create
+        :type directory: str
+        """
+        if not os.path.exists(directory):
             os.makedirs(directory)
-        except OSError:
-            logging.debug("directory `%s` already exists, skipping creation", self.output_dir)
-            pass
 
     def _parse_asn1_generalizedtime(self, timestamp):
+        """
+        Parse a timestamp coming from PyOpenSSL X509 object into datetime.
+
+        :param timestamp: ASN.1 GENERALIZEDTIME timestamp
+        :type timestamp: str
+
+        :return: parsed timestamp
+        :rtype: datetime.datetime
+
+        :raises VaultCAError: if the format is not parsable
+        """
         try:
-            return datetime.strptime(timestamp, self.ASN1_GENERALIZETIME_FORMAT)
+            return datetime.strptime(timestamp, self.ASN1_GENERALIZEDTIME_FORMAT)
         except ValueError as e:
             logging.error("unable to parse timestamp `%s` into ASN.1 GENERALIZEDTIME: %s", timestamp, e)
             raise VaultCAError("unable to parse certificate expire date")
 
     def _load_certificate(self, certificate_path):
+        """
+        Load certificate or CA from disk.
+
+        :param certificate_path: certificate path on disk
+        :type certificate_path: str
+
+        :return: the loaded certificate
+        :rtype: OpenSSL.crypto.X509
+
+        :raises VaultCAError: if the certificate is not loadable
+        """
         with open(certificate_path, 'r') as pem:
             try:
                 certificate = load_certificate(FILETYPE_PEM, pem.read())
@@ -79,6 +132,20 @@ class VaultCA(object):
                 return certificate
 
     def _is_certificate_valid(self, certificate_path):
+        """
+        Check if a certificate or CA is still valid.
+
+        The check is done comparing the notValidAfter date of the certificate with a day in the future,
+        based on `self.valid_interval` parameters.
+
+        If the certificate is due to expire less than `self.valid_interval` days, it is marked it to be renewed.
+
+        :param certificate_path: certificate path on disk
+        :type certificate_path: str
+
+        :return: certificate is valid or not
+        :rtype: bool
+        """
         if os.path.exists(certificate_path):
             certificate = self._load_certificate(certificate_path)
             valid_not_after = self._parse_asn1_generalizedtime(certificate.get_notAfter().decode('utf-8'))
@@ -99,6 +166,24 @@ class VaultCA(object):
             return False
 
     def _write_files(self, common_name, cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file):
+        """
+        Store certificate, private key and CA on disk, if the ones already found on disk are not valid anymore.
+
+        :param common_name: common name for the certificate / key pair
+        :type common_name: str
+        :param cert_data: certificate data
+        :type cert_data: str
+        :param cert_file: certificate path on disk
+        :type cert_file: str
+        :param priv_key_data: private key data
+        :type priv_key_data: str
+        :param priv_key_file: private key path on disk
+        :type priv_key_file: str
+        :param ca_data: CA data
+        :type ca_data: str
+        :param ca_file: CA path on disk
+        :type ca_file: str
+        """
         if not self._is_certificate_valid(cert_file):
             with open(cert_file, 'w') as cert, open(priv_key_file, 'w') as priv_key:
                 logging.debug("writing certificate for %s on %s", common_name, cert_file)
@@ -113,6 +198,21 @@ class VaultCA(object):
                 ca.write(ca_data)
 
     def _prepare_json_data(self, common_name, ip_sans=None, alt_names=None, ttl=None):
+        """
+        Prepare the json payload to be sent to Vault with the new certificate request.
+
+        :param common_name: common name for the certificate / key pair
+        :type common_name: str
+        :param ip_sans: list of IP for the current certificate, comma separated
+        :type ip_sans: str
+        :param alt_names: list of alternative names for the current certificate, comma separated
+        :type alt_names: str
+        :param ttl: TTL for the certificate / key pair
+        :type ttl: str
+
+        :return: json encoded payload
+        :rtype: str
+        """
         if not ttl:
             ttl = self.DEFAULT_CERTIFICATE_TTL
 
@@ -131,43 +231,82 @@ class VaultCA(object):
 
         return json.dumps(data)
 
-    def _analise_request(self, request):
-        if request.ok:
+    def _analise_response(self, response):
+        """
+        Analise response from Vault to find errors and extract the json response payload.
+
+        :type reponse: vault HTTP response
+        :type response: requests.models.Response
+
+        :return: json response payload
+        :rtype: dict
+
+        :raises VaultCAError: if HTTP code is not ok or there are errors
+        """
+        if response.ok:
             try:
-                response = request.json()
+                payload = response.json()
             except json.JSONDecodeError as e:
                 logging.error("error decoding json response: %s", e)
                 raise VaultCAError("error decoding json response")
             else:
-                errors = response.get('errors')
+                errors = payload.get('errors')
                 if errors:
                     logging.error("vault returned errors generating cert / key pair: %s", " ".join(errors))
                     raise VaultCAError("vault returned errors generating cert / key pair")
                 else:
-                    return response
+                    return payload
         else:
-            logging.error("vault returned HTTP code `%s`", request.status_code)
+            logging.error("vault returned HTTP code `%s`", response.status_code)
             raise VaultCAError("vault returned HTTP error")
 
-    def _extract_certificates(self, response):
-        cert_data = response.get('data', {}).get('certificate')
+    def _extract_certificates(self, payload):
+        """
+        Extract certificate, private key and CA from Vault response.
+
+        :param payload: json response payload
+        :type payload: dict
+        :return: certificate, private key and CA
+        :rtype: tuple
+
+        :raises VaultCAError: if certificate or private key or CA are missing
+        """
+
+        cert_data = payload.get('data', {}).get('certificate')
         if not cert_data:
-            logging.error("vault response is missing certificate data")
-            raise VaultCAError("vault response is missing certificate data")
+            logging.error("vault payload is missing certificate data")
+            raise VaultCAError("vault payload is missing certificate data")
 
-        priv_key_data = response.get('data', {}).get('private_key')
+        priv_key_data = payload.get('data', {}).get('private_key')
         if not priv_key_data:
-            logging.error("vault response is missing private key data")
-            raise VaultCAError("vault response is missing private key data")
+            logging.error("vault payload is missing private key data")
+            raise VaultCAError("vault payload is missing private key data")
 
-        ca_data = response.get('data', {}).get('issuing_ca')
+        ca_data = payload.get('data', {}).get('issuing_ca')
         if not ca_data:
-            logging.error("vault response is missing CA data")
-            raise VaultCAError("vault response is missing CA data")
+            logging.error("vault payload is missing CA data")
+            raise VaultCAError("vault payload is missing CA data")
 
         return cert_data, priv_key_data, ca_data
 
     def fetch(self, common_name, ip_sans=None, alt_names=None, ttl=None):
+        """
+        Fetch new certificate / key pair from Vault.
+
+        If attribute `self.bootstrap_ca` is set to True, also the CA is fetched.
+
+        Fetched object are written on disk.
+
+        :param common_name: common name for the certificate / key pair
+        :type common_name: str
+        :param ip_sans: list of IP for the current certificate, comma separated
+        :type ip_sans: str
+        :param alt_names: list of alternative names for the current certificate, comma separated
+        :type alt_names: str
+        :param ttl: TTL for the certificate / key pair
+
+        :raises VaultCAError: if the request return errors
+        """
         self._make_dirs(self.output_dir)
         self._make_dirs(self.ca_path)
 
@@ -183,12 +322,12 @@ class VaultCA(object):
             data = self._prepare_json_data(common_name, ip_sans=ip_sans, alt_names=alt_names, ttl=ttl)
 
             try:
-                request = requests.put(url, data=data, headers=headers, verify=self.ssl_verify)
+                response = requests.put(url, data=data, headers=headers, verify=self.ssl_verify)
             except requests.exceptions.RequestException as e:
                 logging.error("exception connecting to vault endpoint: %s", e)
                 raise VaultCAError("exception connecting to vault endpoint")
             else:
-                response = self._analise_request(request)
+                payload = self._analise_response(response)
 
-            cert_data, priv_key_data, ca_data = self._extract_certificates(response)
+            cert_data, priv_key_data, ca_data = self._extract_certificates(payload)
             self._write_files(common_name, cert_data, cert_file, priv_key_data, priv_key_file, ca_data, ca_file)

@@ -128,7 +128,7 @@ def test_make_dirs(vault_ca_obj, tmpdir):
     temp_dir = str(tmpdir)
     vault_ca_obj._make_dirs(os.path.join(temp_dir, 'atest'))
     assert os.path.isdir(os.path.join(temp_dir, 'atest'))
-    # test it second time to trigger the OSError
+    # test it second time to increase the coverage
     vault_ca_obj._make_dirs(os.path.join(temp_dir, 'atest'))
     assert os.path.isdir(os.path.join(temp_dir, 'atest'))
 
@@ -320,7 +320,7 @@ def test_prepare_json_data_ttl(vault_ca_obj):
     assert json.loads(json_data) == expected
 
 
-def test_analise_request_ok(vault_ca_obj):
+def test_analise_response_ok(vault_ca_obj):
     expected = {'akey': 'avalue'}
 
     class MockRequest:
@@ -332,11 +332,11 @@ def test_analise_request_ok(vault_ca_obj):
         def json(self):
             return expected
 
-    response = vault_ca_obj._analise_request(MockRequest())
+    response = vault_ca_obj._analise_response(MockRequest())
     assert response == expected
 
 
-def test_analise_request_ko(vault_ca_obj):
+def test_analise_reponse_ko(vault_ca_obj):
 
     class MockRequest:
 
@@ -349,10 +349,10 @@ def test_analise_request_ko(vault_ca_obj):
             return 404
 
     with pytest.raises(VaultCAError):
-        vault_ca_obj._analise_request(MockRequest())
+        vault_ca_obj._analise_response(MockRequest())
 
 
-def test_analise_request_json_error(vault_ca_obj):
+def test_analise_response_json_error(vault_ca_obj):
 
     class MockRequest:
 
@@ -373,10 +373,10 @@ def test_analise_request_json_error(vault_ca_obj):
             raise json.JSONDecodeError('anerror', MockJSONDoc(), 2)
 
     with pytest.raises(VaultCAError):
-        vault_ca_obj._analise_request(MockRequest())
+        vault_ca_obj._analise_response(MockRequest())
 
 
-def test_analise_request_vault_error(vault_ca_obj):
+def test_analise_response_vault_error(vault_ca_obj):
     expected = {'akey': 'avalue', 'errors': ['error1', 'error2']}
 
     class MockRequest:
@@ -389,7 +389,7 @@ def test_analise_request_vault_error(vault_ca_obj):
             return expected
 
     with pytest.raises(VaultCAError):
-        vault_ca_obj._analise_request(MockRequest())
+        vault_ca_obj._analise_response(MockRequest())
 
 
 def test_extract_certificates_ok(vault_ca_obj):
