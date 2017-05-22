@@ -21,14 +21,12 @@ after_success:
   - CODECLIMATE_REPO_TOKEN=f8067bcd68e80313e77f6c8319cc79f4f3443e7d703fdc22acc4d1f71a927e6c codeclimate-test-reporter
 
 notifications:
-  irc:
-    channels:
-      - "chat.freenode.net##crisidev"
-    template:
-      - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
-      - "Change view : %{compare_url}"
-      - "Build details : %{build_url}"
-  on_success: always
-  on_failure: always
-  use_notice: false
-  skip_join: false
+irc:
+  channels:
+    - "chat.freenode.net##crisidev"
+  template:
+    - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
+    - "Change view : %{compare_url}"
+    - "Build details : %{build_url}"
+  use_notice: true
+  skip_join: true
