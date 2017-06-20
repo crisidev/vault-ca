@@ -1,0 +1,11 @@
+vault-ca (0.5-2) unstable; urgency=low
+
+  * update package support only python2 and python3
+
+ -- Matteo Bigoi <bigo@crisidev.org>  Tue, 20 Jun 2017 19:53:31 +0000
+
+vault-ca (0.5-1) unstable; urgency=low
+
+  * source package automatically created by stdeb 0.8.2
+
+ -- Matteo Bigoi <bigo@crisidev.org>  Tue, 06 Jun 2017 20:06:08 +0000
