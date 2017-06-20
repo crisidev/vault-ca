@@ -1,0 +1,21 @@
+Source: vault-ca
+Maintainer: Matteo Bigoi <bigo@crisidev.org>
+Section: python
+Priority: optional
+Build-Depends: debhelper (>= 9), dh-python (>= 2),
+    python-setuptools (>= 33.1), python-all (>= 2.7), python-pytest-runner (>= 2.7), python-requests (>= 2.4), python-openssl (>= 16.2), python-pytest (>= 3.0), python-pytest-cov (>= 2.4), python-requests-mock (>= 1.0),
+    python3-setuptools (>= 0.6b3), python3-all (>= 3.4), python3-pytest-runner (>= 2.7), python3-requests (>= 2.4), python3-openssl (>= 16.2), python3-pytest (>= 3.0.6), python3-pytest-cov (>= 2.4), python3-requests-mock (>= 1.0)
+Standards-Version: 3.9.1
+X-Python-Version: >= 2.7
+X-Python3-Version: >= 3.4
+
+Package: python3-vault-ca
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3-all (>= 3.4), python3-requests (>= 2.4), python3-openssl (>= 16.2)
+Description: Set of utils (python3) to create your own CA using hashicorp Vault
+
+Package: python-vault-ca
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-all (>= 2.7), python-requests (>= 2.4), python-openssl (>= 16.2)
+Description: Set of utils (python2) to create your own CA using hashicorp Vault
+

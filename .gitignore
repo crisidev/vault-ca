@@ -89,3 +89,11 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.pybuild/
+
+# Debian packages
+debian/debhelper-build-stamp
+debian/*.debhelper
+debian/*.substvars
+debian/*.log
+debian/files
