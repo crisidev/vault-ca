@@ -1,3 +1,9 @@
+vault-ca (0.5-2.1) unstable; urgency=medium
+
+  * Fix bootstrap argument parsing.
+
+ -- Matteo Bigoi <bigo@crisidev.org>  Wed, 05 Jul 2017 00:02:23 +0100
+
 vault-ca (0.5-2) unstable; urgency=low
 
   * update package support only python2 and python3
