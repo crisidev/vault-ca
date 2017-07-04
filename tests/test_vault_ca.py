@@ -122,7 +122,7 @@ def test_manager_args_bootstrap_ca_ssl_verify(tmpdir):
     assert ca.domain == 'test.org'
     assert ca.vault_token == 'atoken'
     assert ca.bootstrap_ca
-    assert ca.ssl_verify
+    assert not ca.ssl_verify
     assert os.path.isdir(ca.output_dir)
     assert ca.vault_address == 'https://vault.test.org:8200'
     assert ca.valid_interval == 1

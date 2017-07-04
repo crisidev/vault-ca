@@ -55,7 +55,7 @@ class VaultCA(object):
         self.vault_token = kwargs['vault_token']
         self.output_dir = kwargs.get('output_dir') or self.CA_PATH.format(self.domain)
         self.bootstrap_ca = kwargs.get('bootstrap_ca')
-        if self.bootstrap_ca and kwargs.get('ssl_verify') is not True:
+        if self.bootstrap_ca:
             self.ssl_verify = False
         else:
             self.ssl_verify = kwargs.get('ssl_verify')
