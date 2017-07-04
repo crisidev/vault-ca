@@ -1,3 +1,9 @@
+vault-ca (0.6-1) unstable; urgency=medium
+
+  * New upstream version
+
+ -- Matteo Bigoi <bigo@crisidev.org>  Wed, 05 Jul 2017 00:20:40 +0100
+
 vault-ca (0.5-2.1) unstable; urgency=medium
 
   * Fix bootstrap argument parsing.
