@@ -108,26 +108,6 @@ def test_manager_args_bootstrap_ca(tmpdir):
     assert ca.valid_interval == 1
 
 
-def test_manager_args_bootstrap_ca_ssl_verify(tmpdir):
-    kwargs = {
-        'component': 'acomponent',
-        'domain': 'test.org',
-        'vault_token': 'atoken',
-        'bootstrap_ca': True,
-        'ssl_verify': True,
-        'output_dir': str(tmpdir),
-    }
-    ca = VaultCA(kwargs)
-    assert ca.component == 'acomponent'
-    assert ca.domain == 'test.org'
-    assert ca.vault_token == 'atoken'
-    assert ca.bootstrap_ca
-    assert not ca.ssl_verify
-    assert os.path.isdir(ca.output_dir)
-    assert ca.vault_address == 'https://vault.test.org:8200'
-    assert ca.valid_interval == 1
-
-
 def test_make_dirs(vault_ca_obj, tmpdir):
     temp_dir = str(tmpdir)
     vault_ca_obj._make_dirs(os.path.join(temp_dir, 'atest'))
