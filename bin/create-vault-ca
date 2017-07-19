@@ -46,8 +46,9 @@ EOT
 
 # parse command line arguments
 while [ "$1" != "" ]; do
-  PARAM=$(echo $1 | awk -F= '{print $1}')
-  VALUE=$(echo $1 | sed 's/^[^=]*=//g')
+  PARAM="$(echo "$1" | awk -F= '{print $1}')"
+  # shellcheck disable=SC2001
+  VALUE="$(echo "$1" | sed 's/^[^=]*=//g')"
   case ${PARAM} in
     "-h" | "--help")
       usage
@@ -91,7 +92,7 @@ while [ "$1" != "" ]; do
 done
 
 # check mandatory arguments
-if [ -z "${DOMAIN}" ] || [ -z ${COMPONENT} ] || [ -z "${VAULT_TOKEN}" ] || [ -z "${VAULT_ADDR}" ]; then
+if [ -z "${DOMAIN}" ] || [ -z "${COMPONENT}" ] || [ -z "${VAULT_TOKEN}" ] || [ -z "${VAULT_ADDR}" ]; then
   usage
   exit 1
 fi
@@ -114,7 +115,7 @@ CA_PATH=pki/${DOMAIN}
 function read_yes_no {
   MESSAGE=$1
   echo -n "${MESSAGE} "
-  read answer
+  read -r answer
   if ! echo "$answer" | grep -iq "^y" ;then
     echo "exiting."
     exit 1
@@ -123,28 +124,28 @@ function read_yes_no {
 
 function mount_pki {
 # mount vault path for this CA and tune expiration to $MAX_TTL
-  vault mount -path ${CA_PATH} pki
-  vault mount-tune -max-lease-ttl=${CA_TTL} ${CA_PATH}
+  vault mount -path "${CA_PATH}" pki
+  vault mount-tune -max-lease-ttl="${CA_TTL}" "${CA_PATH}"
 }
 
 function generate_root_ca {
   # generate root CA
-  vault write ${CA_PATH}/root/generate/internal common_name=${DOMAIN} exclude_cn_from_sans=true ttl=${CA_TTL}
+  vault write "${CA_PATH}"/root/generate/internal common_name="${DOMAIN}" exclude_cn_from_sans=true ttl="${CA_TTL}"
 }
 
 function generate_cert_role {
   # create a role name "cert" able to generate certificates
-  vault write ${CA_PATH}/roles/cert \
+  vault write "${CA_PATH}"/roles/cert \
           allow_any_name=true allow_bare_domains=true \
           allow_subdomains=true allow_glob_domains=true \
           allow_localhost=true allow_ip_sans=true \
-          ou=${COMPONENT} organization=${DOMAIN} \
-          ttl=${CERT_TTL} max_ttl=${CERT_MAX_TTL}
+          ou="${COMPONENT}" organization="${DOMAIN}" \
+          ttl="${CERT_TTL}" max_ttl="${CERT_MAX_TTL}"
 }
 
 function generate_cert_policy {
 # policy for to allow access only to token releated to $COMPONENT
-  cat <<EOT | vault policy-write ${CA_PATH}/cert -
+  cat <<EOT | vault policy-write "${CA_PATH}"/cert -
 path "${CA_PATH}/issue/cert" {
   policy = "write"
 }
@@ -154,16 +155,16 @@ EOT
 function configure_services_token {
   # configuration of token generation options and allowed policies
   vault write auth/token/roles/services \
-          explicit_max_ttl=${TOKEN_MAX_TTL} ttl=${TOKEN_TTL} \
-          period=${TOKEN_TTL} renewable=true \
+          explicit_max_ttl="${TOKEN_MAX_TTL}" ttl="${TOKEN_TTL}" \
+          period="${TOKEN_TTL}" renewable=true \
           orphan=true allowed_policies="${CA_PATH}/cert"
 }
 
 function configure_users_token {
   # configuration of token generation options and allowed policies
   vault write auth/token/roles/users \
-          explicit_max_ttl=${TOKEN_MAX_TTL} ttl=${TOKEN_TTL} \
-          period=${TOKEN_TTL} renewable=true \
+          explicit_max_ttl="${TOKEN_MAX_TTL}" ttl="${TOKEN_TTL}" \
+          period="${TOKEN_TTL}" renewable=true \
           orphan=true allowed_policies="${CA_PATH}/cert"
 }
 
